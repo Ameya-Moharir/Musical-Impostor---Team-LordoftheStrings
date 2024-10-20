@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room {{ room_code }}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #000000;
+        color: #ffd700;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+    .container {
+        width: 90%;
+        max-width: 1000px;
+        text-align: center;
+        background-color: rgba(26, 26, 26, 0.8);
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    }
+    h1, h2, h3 {
+        margin-bottom: 1rem;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    .room-id {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .logo {
+        max-width: 500px;
+        margin: 2rem auto;
+    }
+    .welcome-message {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        color: #ffd700;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    #players-list {
+        list-style-type: none;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2rem;
+    }
+    .player {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .player-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: rgba(255, 215, 0, 0.2);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.8rem;
+    }
+    .player-name {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    button {
+        display: inline-block;
+        padding: 1rem 2rem;
+        margin: 1.5rem 0.8rem;
+        border: none;
+        border-radius: 30px;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: linear-gradient(45deg, #ffd700, #ffcc00);
+        color: #000000;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    button:hover {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+    }
+    #start-game-button {
+        background: linear-gradient(45deg, #00ff00, #00cc00);
+    }
+    #leave-button {
+        background: linear-gradient(45deg, #ff4500, #ff6347);
+    }
+    #close-room-button {
+        background: linear-gradient(45deg, #ff0000, #cc0000);
+    }
+    .rules-container {
+    margin-top: 2rem;
+    padding: 1rem;
+    position: relative;
+    background-color: rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+}
+
+.rules-container::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #ffd700, #ff6b6b, #4ecdc4, #45b7d1, #ffd700);
+    z-index: -1;
+    filter: blur(10px);
+    animation: glowing 20s linear infinite;
+}
+
+@keyframes glowing {
+    0% { background-position: 0 0; }
+    50% { background-position: 400% 0; }
+    100% { background-position: 0 0; }
+}
+
+.rules-content {
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 1rem;
+    border-radius: 10px;
+}
+
+.rules-container h3 {
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.rules-content ol {
+    padding-left: 1.5rem;
+    color: #ffd700;
+}
+
+.rules-content li {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Room: {{ room_code }}</h1>
+        <img src="{{ url_for('static', filename='Logo.png') }}" alt="Musical Impostor" class="logo">
+        <h2 class="welcome-message">Welcome, {{ nickname }}!</h2>
+        <h3>Players in the room:</h3>
+        <ul id="players-list">
+            {% for player in players %}
+                <li class="player">
+                    <div class="player-circle">{{ player[0].upper() }}</div>
+                    <div class="player-name">{{ player }}</div>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <button id="leave-button">Leave Room</button>
+        {% if is_host %}
+        <button id="close-room-button">Close Room</button>
+        <button id="start-game-button">Start Game</button>
+        {% endif %}
+    </div>
+<div class="rules-container">
+    <h3>Game Rules</h3>
+    <div class="rules-content">
+        <ol>
+            <li>Headphones on, Team! This is a multiplayer game, and each player must wear their own earphones or headphones for a fully immersive experience.</li>
+            <li>Listen Closely! All players will hear a 30-second song from one of five genre-specific playlists. The song title and artist will be displayed on your screen.</li>
+            <li>The Imposter Alert! One sneaky imposter will hear a completely different song from a different genre playlist.</li>
+            <li>Sabotage Incoming! The imposter can sabotage one player in the first 6 seconds before the song starts. The sabotaged player will then hear the same song as the imposter.</li>
+            <li>Time to Chat! After the song ends, players will have a 2-minute discussion to figure out who the imposter is. You can ask music-related questions, but don't reveal the song or artist directly!</li>
+            <li>Keep It Mysterious! Make sure your questions don't give away the genre or exact details, but try to figure out if others are telling the truth or covering for the imposter.</li>
+            <li>Cast Your Vote! After the discussion, a 30-second voting session will start. Vote for the player you think is the imposter!</li>
+            <li>Victory or Defeat! If the imposter receives the most votes, they lose, and the rest of the players win. If not, the imposter wins!</li>
+        </ol>
+    </div>
+</div>
+    <script>
+        const socket = io('/', {
+            transports: ['websocket'],
+            upgrade: false
+        });
+        const roomCode = '{{ room_code }}';
+        const username = '{{ username }}';
+        const isHost = {{ is_host|tojson }};
+        let gameStarted = false;
+
+        function updatePlayersList(players) {
+            const playersList = document.getElementById('players-list');
+            playersList.innerHTML = '';
+            players.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player;
+                li.id = `player-${player}`;
+                playersList.appendChild(li);
+            });
+        }
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+
+            socket.emit('join', {room_code: roomCode, username: username});
+
+        });
+
+        socket.on('join_confirmation', (data) => {
+            console.log('Join confirmation:', data);
+        });
+
+        socket.on('game_started', (data) => {
+                console.log('Received game_started event', data);
+                handleGameStarted(data);
+            });
+
+            socket.on('game_started_room', (data) => {
+                console.log('Received game_started_room event', data);
+            });
+
+        socket.on('game_started_broadcast', (data) => {
+        console.log('Received game_started_broadcast event', data);
+    });
+
+       function handleGameStarted(data) {
+    gameStarted = true;
+    console.log("handleGameStarted function called");
+    let message;
+    if (data.impostor === username) {
+        message = 'You are the impostor!';
+    } else {
+        message = 'Just enjoy the music!';
+    }
+    alert(message);
+
+    console.log('Song info:', data.song);
+    console.log('Attempting to redirect to:', `/game/${roomCode}/${username}`);
+    window.location.href = `/game/${roomCode}/${username}`;
+}
+
+        socket.on('player_joined', (data) => {
+            updatePlayersList(data.players);
+        });
+
+        socket.on('player_left', (data) => {
+            const playerElement = document.getElementById(`player-${data.username}`);
+            if (playerElement) {
+                playerElement.remove();
+            }
+        });
+
+        // socket.on('room_closed', () => {
+        //     alert('The room has been closed by the host.');
+        //     window.location.href = '/';
+        // });
+
+        socket.on('room_closed', () => {
+            console.log('Room closed event received');  // Add this line for debugging
+            alert('The room has been closed by the host.');
+            window.location.href = '/';
+        });
+
+        // Add this to your existing script tag
+        document.getElementById('leave-button').addEventListener('click', () => {
+            socket.emit('leave_room', {room_code: roomCode, username: username});
+            window.location.href = '/';  // Redirect to the home page
+        });
+        
+        // if (isHost) {
+        //     document.getElementById('close-room-button').addEventListener('click', () => {
+        //         if (confirm('Are you sure you want to close the room?')) {
+        //             socket.emit('close_room', {room_code: roomCode});
+        //             window.location.href = '/';  // Redirect to the home page
+        //         }
+        //     });
+        // }
+
+        if (isHost) {
+            const startGameButton = document.getElementById('start-game-button');
+            startGameButton.addEventListener('click', () => {
+                if (!gameStarted) {
+                    console.log('Host clicked Start Game button');
+                    socket.emit('start_game', { room_code: roomCode });
+                    startGameButton.disabled = true;
+                    console.log('Start Game event emitted');
+                }
+            });
+        }
+
+        if (isHost) {
+            const closeRoomButton = document.getElementById('close-room-button');
+            if (closeRoomButton) {
+                closeRoomButton.addEventListener('click', () => {
+                    console.log('Close room button clicked');  // Add this line for debugging
+                    if (confirm('Are you sure you want to close the room?')) {
+                        console.log('Closing room:', roomCode);  // Add this line for debugging
+                        socket.emit('close_room', {room_code: roomCode});
+                        window.location.href = '/';
+                    }
+                });
+            } else {
+                console.error('Close room button not found');  // Add this line for debugging
+            }
+        }
+
+        // temporary code
+        
+        socket.on('connect_error', (error) => {
+            console.log('Connection error:', error);
+        });
+
+        socket.onAny((eventName, ...args) => {
+            console.log(`Received event: ${eventName}`, args);
+        });
+
+        socket.emit('ping', (response) => {
+            console.log('Received pong:', response);
+        });
+
+        // temp code end
+
+        // Periodically check connection
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+
+        setInterval(() => {
+            if (socket.connected) {
+                console.log('Still connected to server');
+            } else {
+                console.log('Not connected to server');
+                socket.connect();
+            }
+        }, 5000);
+
+        window.onbeforeunload = () => {
+            socket.emit('leave_room', {room_code: roomCode, username: username});
+        };
+    </script>
+</body>
+</html>

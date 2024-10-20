@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musical Impostor - Room Creator</title>
+    <style>
+       body {
+            font-family: 'Arial', sans-serif;
+            background-color: #000000;
+            color: #ffd700;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #1a1a1a;
+            padding: 3rem;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            text-align: center;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+            border: 3px solid rgba(255, 215, 0, 0.9);
+            box-sizing: border-box;
+            box-shadow: 
+                0 0 20px rgba(255, 215, 0, 0.8),
+                0 0 40px rgba(255, 215, 0, 1),
+                0 0 60px rgba(255, 215, 0, 1);
+            animation: streakline 3s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes streakline {
+            0% { clip-path: inset(0 100% 0 0); }
+            25% { clip-path: inset(0 0 100% 0); }
+            50% { clip-path: inset(0 0 0 100%); }
+            75% { clip-path: inset(100% 0 0 0); }
+            100% { clip-path: inset(0 100% 0 0); }
+        }
+        input {
+            display: block;
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            border: 2px solid #ffd700;
+            border-radius: 25px;
+            font-size: 1rem;
+            background-color: #2a2a2a;
+            color: #ffd700;
+            box-sizing: border-box;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #ffd700, #ffcc00);
+            color: #000000;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+        button::after {
+            content: '➔';
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        button:hover::after {
+            color: #ffd700;
+        }
+        button:hover {
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+        .join-room {
+            display: flex;
+            margin-top: 1rem;
+            gap: 0.6rem;
+        }
+        .join-room input {
+            flex-grow: 2;
+            margin-bottom: 0;
+        }
+        .join-room button {
+            flex-grow: 0.75;
+            margin-bottom: 0;
+            padding: 0.8rem 0.5rem;
+        }
+        .creator {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+            color: #ffd700;
+        }
+        .logo {
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="{{ url_for('static', filename='Logo.png') }}" alt="Musical Impostor" class="logo" onerror="this.onerror=null; this.src='/static/Logo.png';">
+        
+        <h2>Create a Room</h2>
+        <form method="POST">
+            <input type="text" name="nickname" placeholder="Your Nickname" required>
+            <input type="number" name="max_players" placeholder="Max Players" required>
+            <button type="submit" name="action" value="create">Create Room</button>
+        </form>
+
+        <h2>Join a Room</h2>
+        <form method="POST">
+            <input type="text" name="nickname" placeholder="Your Nickname" required>
+            <input type="text" name="room_code" placeholder="Room Code" required>
+            <button type="submit" name="action" value="join">Join Room</button>
+        </form>
+    </div>
+
+    <div class="creator">
+        Created by LordoftheStrings
+    </div>
+    <script>
+document.querySelector('form[name="action"][value="create"]').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const nickname = this.querySelector('input[name="nickname"]').value;
+    const maxPlayers = this.querySelector('input[name="max_players"]').value;
+    
+    fetch('/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `nickname=${encodeURIComponent(nickname)}&max_players=${encodeURIComponent(maxPlayers)}&action=create`
+    })
+    .then(response => response.text())
+    .then(html => {
+        document.open();
+        document.write(html);
+        document.close();
+    })
+    .catch(error => console.error('Error:', error));
+});
+</script>
+</body>
+</html>
